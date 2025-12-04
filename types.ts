@@ -1,4 +1,3 @@
-
 export enum FlightType {
   ONE_WAY = 'One Way',
   ROUND_TRIP = 'Round Trip',

@@ -1,4 +1,3 @@
-
 import { Package, User, Lead, Invoice, CompanySettings, Booking } from '../types';
 
 // Initial Mock Data Seeding

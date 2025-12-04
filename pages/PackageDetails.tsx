@@ -1,40 +1,23 @@
+
 import React from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Package } from '../types';
-import { Clock, MapPin, Star, CheckCircle, XCircle, Printer, Download, Share2 } from 'lucide-react';
+import { Clock, MapPin, Star, CheckCircle, XCircle, Printer, Download, Share2, Plane } from 'lucide-react';
 import { LeadForm } from '../components/Shared';
-
-// Mock detailed data fetcher
-const getPackage = (id: string): Package | undefined => {
-  // In real app, fetch from API. Returning a full dummy object here.
-  return {
-    id,
-    title: 'Majestic Dubai Premium',
-    duration: '5 Days / 4 Nights',
-    price: 45000,
-    image: 'https://picsum.photos/1200/600?random=1',
-    destination: 'Dubai, UAE',
-    rating: 4.8,
-    description: 'Experience the glitz and glamour of Dubai with our premium package. Includes stay at 5-star properties, private transfers, and exclusive access to top attractions.',
-    inclusions: ['4 Nights Accommodation', 'Daily Breakfast', 'Burj Khalifa 124th Floor Ticket', 'Desert Safari with BBQ Dinner', 'Marina Dhow Cruise', 'Airport Transfers', 'UAE Tourist Visa'],
-    exclusions: ['Airfare (Optional add-on)', 'Personal Expenses', 'Lunch & Dinner (unless specified)', 'Tourism Dirham Fee'],
-    hotelsIncluded: 'Atlantis The Palm, Grand Hyatt',
-    activitiesIncluded: 'Burj Khalifa, Desert Safari, Marina Cruise',
-    itinerary: [
-      { day: 1, title: 'Arrival in Dubai', desc: 'Welcome to Dubai! Private transfer to your hotel. Evening Marina Dhow Cruise with dinner.' },
-      { day: 2, title: 'City Tour & Burj Khalifa', desc: 'Half-day city tour visiting Palm Jumeirah and Dubai Mall. Visit Burj Khalifa At The Top in the evening.' },
-      { day: 3, title: 'Desert Safari', desc: 'Morning at leisure. Afternoon pick up for Desert Safari with dune bashing, camel ride, and BBQ dinner.' },
-      { day: 4, title: 'Shopping & Leisure', desc: 'Day free for shopping at Gold Souk or optional visit to Miracle Garden.' },
-      { day: 5, title: 'Departure', desc: 'Check-out and transfer to the airport for your flight back home.' },
-    ]
-  };
-};
+import { PackageService } from '../services/storage';
 
 export const PackageDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const pkg = getPackage(id || '1');
+  // In real app we fetch, here we get from storage
+  const [pkg, setPkg] = React.useState<Package | undefined>(undefined);
 
-  if (!pkg) return <div>Package not found</div>;
+  React.useEffect(() => {
+    const all = PackageService.getAll();
+    const found = all.find(p => p.id === id);
+    setPkg(found);
+  }, [id]);
+
+  if (!pkg) return <div className="p-10 text-center">Loading Package Details...</div>;
 
   const handlePrint = () => {
     window.print();
@@ -85,7 +68,7 @@ export const PackageDetails: React.FC = () => {
                 </ul>
               </div>
             </div>
-            {/* Added details for hotels and activities */}
+            
             <div className="mt-8 pt-8 border-t border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                    <h3 className="font-bold text-slate-800 mb-2">Hotels Included</h3>
@@ -96,9 +79,35 @@ export const PackageDetails: React.FC = () => {
                    <p className="text-sm text-slate-600">{pkg.activitiesIncluded}</p>
                 </div>
             </div>
+
+            {/* Flight Details if available */}
+            {pkg.flightDetails && (
+                <div className="mt-8 bg-blue-50 p-6 rounded-xl border border-blue-100">
+                    <h3 className="font-bold text-blue-800 mb-4 flex items-center"><Plane className="h-5 w-5 mr-2" /> Flight Information</h3>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <span className="block text-slate-500 text-xs">Airline</span>
+                            <span className="font-bold text-slate-800">{pkg.flightDetails.airline}</span>
+                        </div>
+                        <div>
+                            <span className="block text-slate-500 text-xs">Flight No</span>
+                            <span className="font-bold text-slate-800">{pkg.flightDetails.flightNumber}</span>
+                        </div>
+                        <div>
+                            <span className="block text-slate-500 text-xs">Departure</span>
+                            <span className="font-bold text-slate-800">{pkg.flightDetails.departureTime}</span>
+                        </div>
+                        <div>
+                            <span className="block text-slate-500 text-xs">Arrival</span>
+                            <span className="font-bold text-slate-800">{pkg.flightDetails.arrivalTime}</span>
+                        </div>
+                    </div>
+                </div>
+            )}
           </div>
 
           {/* Itinerary */}
+          {pkg.itinerary && pkg.itinerary.length > 0 && (
           <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-8 print:shadow-none print:border-none print:p-0 print:break-before-page">
             <div className="flex justify-between items-center mb-6">
                <h2 className="text-2xl font-bold text-royal-900 font-serif">Day-wise Itinerary</h2>
@@ -121,6 +130,7 @@ export const PackageDetails: React.FC = () => {
               ))}
             </div>
           </div>
+          )}
 
         </div>
 

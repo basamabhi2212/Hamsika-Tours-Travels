@@ -54,6 +54,13 @@ export interface Hotel {
   amenities: string[];
 }
 
+export interface PackageFlightDetails {
+  airline: string;
+  flightNumber: string;
+  departureTime: string;
+  arrivalTime: string;
+}
+
 export interface Package {
   id: string;
   title: string;
@@ -68,6 +75,7 @@ export interface Package {
   inclusions: string[];
   exclusions: string[];
   itinerary: { day: number; title: string; desc: string }[];
+  flightDetails?: PackageFlightDetails;
 }
 
 export interface Activity {
@@ -93,11 +101,15 @@ export interface Lead {
   createdAt: string;
 }
 
-export interface MarkupSettings {
-  flightMarkup: number;
-  hotelMarkup: number;
-  packageMarkup: number;
-  isPercentage: boolean;
+export interface MarkupValue {
+  type: 'percentage' | 'fixed';
+  value: number;
+}
+
+export interface MarkupConfig {
+  flight: MarkupValue;
+  hotel: MarkupValue;
+  package: MarkupValue;
 }
 
 export interface Passenger {
@@ -147,6 +159,7 @@ export interface CompanySettings {
   companyEmail: string;
   gstNumber?: string;
   kiwiApiKey?: string;
+  markupConfig?: MarkupConfig;
 }
 
 export interface InvoiceItem {

@@ -22,6 +22,7 @@ export const Navbar: React.FC = () => {
     { name: 'Packages', path: '/packages' },
     { name: 'Activities', path: '/activities' },
     { name: 'Payments', path: '/payment-status' },
+    { name: 'My Bookings', path: '/payment-status' }, // Reusing payment status page as portal for now
   ];
 
   return (

@@ -1,5 +1,5 @@
 
-import { Package, User, Lead, Invoice, CompanySettings } from '../types';
+import { Package, User, Lead, Invoice, CompanySettings, Booking } from '../types';
 
 // Initial Mock Data Seeding
 const SEED_PACKAGES: Package[] = [
@@ -37,7 +37,12 @@ const DEFAULT_SETTINGS: CompanySettings = {
   companyMobile: '+91 9493936084',
   companyEmail: 'abhishekamt0@gmail.com',
   gstNumber: '36ABCDE1234F1Z5',
-  kiwiApiKey: ''
+  kiwiApiKey: '',
+  markupConfig: {
+    flight: { type: 'fixed', value: 0 },
+    hotel: { type: 'fixed', value: 0 },
+    package: { type: 'fixed', value: 0 }
+  }
 };
 
 const SEED_INVOICES: Invoice[] = [
@@ -117,6 +122,19 @@ export const LeadService = {
     const list = LeadService.getAll();
     saveCollection('leads', list.filter(l => l.id !== id));
   }
+};
+
+export const BookingService = {
+    getAll: (): Booking[] => getCollection('bookings', []),
+    update: (booking: Booking) => {
+        const list = BookingService.getAll();
+        const updated = list.map(b => b.id === booking.id ? booking : b);
+        saveCollection('bookings', updated);
+    },
+    delete: (id: string) => {
+        const list = BookingService.getAll();
+        saveCollection('bookings', list.filter(b => b.id !== id));
+    }
 };
 
 export const SettingsService = {

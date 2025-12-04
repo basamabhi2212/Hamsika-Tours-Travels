@@ -3,11 +3,12 @@ import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { 
   LayoutDashboard, Users, Package as PackageIcon, Settings, LogOut, Save, Plus, Search, Trash2, Edit, 
-  CheckCircle, XCircle, X, Phone, Mail, Calendar, MapPin, CreditCard, UserPlus, FileText, Printer, Eye, Database, Key, Download
+  CheckCircle, XCircle, X, Phone, Mail, Calendar, MapPin, CreditCard, UserPlus, FileText, Printer, Eye, Database, Key, Download,
+  BookOpen, Plane
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { User, Lead, Package, CompanySettings, Invoice, InvoiceItem } from '../types';
-import { PackageService, UserService, LeadService, SettingsService, InvoiceService } from '../services/storage';
+import { User, Lead, Package, CompanySettings, Invoice, InvoiceItem, Booking } from '../types';
+import { PackageService, UserService, LeadService, SettingsService, InvoiceService, BookingService } from '../services/storage';
 
 // --- SHARED COMPONENTS ---
 
@@ -43,6 +44,7 @@ const AdminSidebar = () => {
     { icon: LayoutDashboard, label: 'Dashboard', path: '/admin' },
     { icon: Users, label: 'Leads & CRM', path: '/admin/leads' },
     { icon: PackageIcon, label: 'Packages', path: '/admin/packages' },
+    { icon: BookOpen, label: 'Bookings', path: '/admin/bookings' },
     { icon: UserPlus, label: 'Users & Staff', path: '/admin/users' },
     { icon: FileText, label: 'Invoices', path: '/admin/invoices' },
     { icon: Settings, label: 'Settings', path: '/admin/settings' },
@@ -129,6 +131,83 @@ const DashboardHome = () => {
   );
 };
 
+// --- BOOKINGS ---
+const BookingsPage = () => {
+    const [bookings, setBookings] = useState<Booking[]>([]);
+
+    useEffect(() => {
+        setBookings(BookingService.getAll());
+    }, []);
+
+    const handleDelete = (id: string) => {
+        if(window.confirm("Are you sure you want to delete this booking?")) {
+            BookingService.delete(id);
+            setBookings(BookingService.getAll());
+        }
+    };
+
+    const handleStatusUpdate = (booking: Booking, status: 'Confirmed' | 'Cancelled' | 'Pending') => {
+        BookingService.update({...booking, status});
+        setBookings(BookingService.getAll());
+    };
+
+    return (
+        <div className="space-y-6 animate-fade-in-up">
+            <h1 className="text-3xl font-bold text-white font-serif">Manage Bookings</h1>
+            
+            <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden shadow-xl">
+                <table className="w-full text-left">
+                    <thead className="bg-slate-700 border-b border-slate-600 text-white">
+                        <tr>
+                            <th className="px-6 py-4 text-xs font-bold uppercase">Ref ID</th>
+                            <th className="px-6 py-4 text-xs font-bold uppercase">Customer</th>
+                            <th className="px-6 py-4 text-xs font-bold uppercase">Type</th>
+                            <th className="px-6 py-4 text-xs font-bold uppercase">Amount</th>
+                            <th className="px-6 py-4 text-xs font-bold uppercase">Status</th>
+                            <th className="px-6 py-4 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-700 text-slate-300">
+                        {bookings.map(b => (
+                            <tr key={b.id} className="hover:bg-slate-700/50">
+                                <td className="px-6 py-4 font-mono font-bold text-white">{b.id}</td>
+                                <td className="px-6 py-4">
+                                    <div className="text-white">{b.customerName}</div>
+                                    <div className="text-xs text-slate-400">{b.customerEmail}</div>
+                                </td>
+                                <td className="px-6 py-4">{b.type}</td>
+                                <td className="px-6 py-4 font-bold text-gold-400">₹{b.amount.toLocaleString()}</td>
+                                <td className="px-6 py-4">
+                                    <select 
+                                        value={b.status} 
+                                        onChange={(e) => handleStatusUpdate(b, e.target.value as any)}
+                                        className={`bg-slate-900 border border-slate-600 rounded px-2 py-1 text-xs font-bold ${
+                                            b.status === 'Confirmed' ? 'text-green-400' :
+                                            b.status === 'Cancelled' ? 'text-red-400' : 'text-yellow-400'
+                                        }`}
+                                    >
+                                        <option value="Pending">Pending</option>
+                                        <option value="Confirmed">Confirmed</option>
+                                        <option value="Cancelled">Cancelled</option>
+                                    </select>
+                                </td>
+                                <td className="px-6 py-4 text-right">
+                                    <button onClick={() => handleDelete(b.id)} className="text-red-400 hover:text-white hover:bg-red-900/50 p-2 rounded transition-colors">
+                                        <Trash2 className="h-4 w-4" />
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                        {bookings.length === 0 && (
+                             <tr><td colSpan={6} className="text-center py-12 text-slate-500">No bookings found.</td></tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+};
+
 // --- PACKAGES ---
 const PackagesPage = () => {
   const [packages, setPackages] = useState<Package[]>([]);
@@ -138,7 +217,8 @@ const PackagesPage = () => {
   const initialForm = {
     title: '', destination: '', duration: '', price: 0, 
     image: 'https://picsum.photos/800/600', rating: 5, description: '',
-    hotelsIncluded: '', activitiesIncluded: '', inclusions: '', exclusions: ''
+    hotelsIncluded: '', activitiesIncluded: '', inclusions: '', exclusions: '',
+    flightAirline: '', flightNumber: '', flightDep: '', flightArr: ''
   };
   const [formData, setFormData] = useState(initialForm);
 
@@ -150,8 +230,17 @@ const PackagesPage = () => {
       ...formData,
       inclusions: typeof formData.inclusions === 'string' ? (formData.inclusions as string).split('\n').filter(x => x.trim()) : formData.inclusions,
       exclusions: typeof formData.exclusions === 'string' ? (formData.exclusions as string).split('\n').filter(x => x.trim()) : formData.exclusions,
+      flightDetails: (formData.flightAirline && formData.flightNumber) ? {
+          airline: formData.flightAirline,
+          flightNumber: formData.flightNumber,
+          departureTime: formData.flightDep,
+          arrivalTime: formData.flightArr
+      } : undefined,
       itinerary: []
     };
+    
+    // Clean up temp fields
+    delete payload.flightAirline; delete payload.flightNumber; delete payload.flightDep; delete payload.flightArr;
 
     if (currentPkg) PackageService.update({ ...payload, id: currentPkg.id });
     else PackageService.add(payload);
@@ -175,7 +264,11 @@ const PackagesPage = () => {
       title: pkg.title, destination: pkg.destination, duration: pkg.duration, price: pkg.price,
       image: pkg.image, rating: pkg.rating, description: pkg.description,
       hotelsIncluded: pkg.hotelsIncluded, activitiesIncluded: pkg.activitiesIncluded,
-      inclusions: pkg.inclusions.join('\n'), exclusions: pkg.exclusions.join('\n')
+      inclusions: pkg.inclusions.join('\n'), exclusions: pkg.exclusions.join('\n'),
+      flightAirline: pkg.flightDetails?.airline || '',
+      flightNumber: pkg.flightDetails?.flightNumber || '',
+      flightDep: pkg.flightDetails?.departureTime || '',
+      flightArr: pkg.flightDetails?.arrivalTime || ''
     });
     setIsFormOpen(true);
   };
@@ -215,6 +308,7 @@ const PackagesPage = () => {
                 <td className="px-6 py-4 text-xs text-slate-400 max-w-xs truncate">
                   <span className="block mb-1">🏨 {p.hotelsIncluded}</span>
                   <span className="block">🎢 {p.activitiesIncluded}</span>
+                  {p.flightDetails && <span className="block text-blue-400">✈️ {p.flightDetails.airline}</span>}
                 </td>
                 <td className="px-6 py-4 text-right space-x-2">
                   <button onClick={() => openEdit(p)} className="bg-blue-900/50 text-blue-400 hover:text-white hover:bg-blue-600 p-2 rounded-lg transition-colors" title="Edit"><Edit className="h-4 w-4"/></button>
@@ -246,6 +340,7 @@ const PackagesPage = () => {
                 <input value={formData.image} onChange={e => setFormData({...formData, image: e.target.value})} className="w-full p-3 bg-slate-900 border border-slate-600 rounded-lg text-white focus:border-gold-500 outline-none transition-colors" placeholder="https://..." />
              </div>
              
+             {/* Hotel & Activity */}
              <div className="md:col-span-2 grid grid-cols-2 gap-6 bg-slate-700/30 p-4 rounded-xl border border-slate-600/50">
                <div className="space-y-1">
                   <label className="text-xs font-bold text-gold-400 uppercase tracking-wide">Hotels Included</label>
@@ -255,6 +350,27 @@ const PackagesPage = () => {
                   <label className="text-xs font-bold text-gold-400 uppercase tracking-wide">Activities Included</label>
                   <input value={formData.activitiesIncluded} onChange={e => setFormData({...formData, activitiesIncluded: e.target.value})} className="w-full p-3 bg-slate-900 border border-slate-600 rounded-lg text-white focus:border-gold-500 outline-none" placeholder="e.g. Safari, Cruise" />
                </div>
+             </div>
+
+             {/* Flight Details */}
+             <div className="md:col-span-2 grid grid-cols-4 gap-4 bg-blue-900/20 p-4 rounded-xl border border-blue-800/50">
+                <div className="col-span-4 mb-2 text-sm font-bold text-blue-400 flex items-center"><Plane className="h-4 w-4 mr-2"/> Flight Information (Optional)</div>
+                <div className="space-y-1">
+                    <label className="text-xs text-slate-400">Airline</label>
+                    <input value={formData.flightAirline} onChange={e => setFormData({...formData, flightAirline: e.target.value})} className="w-full p-2 bg-slate-900 border border-slate-600 rounded text-white text-sm" placeholder="e.g. IndiGo" />
+                </div>
+                <div className="space-y-1">
+                    <label className="text-xs text-slate-400">Flight No</label>
+                    <input value={formData.flightNumber} onChange={e => setFormData({...formData, flightNumber: e.target.value})} className="w-full p-2 bg-slate-900 border border-slate-600 rounded text-white text-sm" placeholder="6E-123" />
+                </div>
+                <div className="space-y-1">
+                    <label className="text-xs text-slate-400">Departure</label>
+                    <input value={formData.flightDep} onChange={e => setFormData({...formData, flightDep: e.target.value})} className="w-full p-2 bg-slate-900 border border-slate-600 rounded text-white text-sm" placeholder="10:00 AM" />
+                </div>
+                <div className="space-y-1">
+                    <label className="text-xs text-slate-400">Arrival</label>
+                    <input value={formData.flightArr} onChange={e => setFormData({...formData, flightArr: e.target.value})} className="w-full p-2 bg-slate-900 border border-slate-600 rounded text-white text-sm" placeholder="2:00 PM" />
+                </div>
              </div>
 
              <div className="space-y-1 md:col-span-2">
@@ -514,11 +630,23 @@ const UserManagementPage = () => {
 // --- SETTINGS ---
 const SettingsPage = () => {
   const [settings, setSettings] = useState<CompanySettings>(SettingsService.get());
+  
+  // Default markup config if missing
+  const [markupConfig, setMarkupConfig] = useState(settings.markupConfig || {
+      flight: { type: 'fixed', value: 0 },
+      hotel: { type: 'fixed', value: 0 },
+      package: { type: 'fixed', value: 0 }
+  });
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     SettingsService.save(settings);
-    alert('Settings Saved Successfully!');
+    alert('General Settings Saved Successfully!');
+  };
+
+  const handleSaveMarkup = () => {
+      SettingsService.save({ ...settings, markupConfig });
+      alert('Markup Settings Saved & Applied!');
   };
 
   const handleExportData = () => {
@@ -527,6 +655,7 @@ const SettingsPage = () => {
       leads: LeadService.getAll(),
       users: UserService.getAll(),
       invoices: InvoiceService.getAll(),
+      bookings: BookingService.getAll(),
       settings: SettingsService.get()
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -538,16 +667,19 @@ const SettingsPage = () => {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in-up">
+    <div className="space-y-8 animate-fade-in-up">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-white font-serif">Company Settings</h1>
         <button onClick={handleExportData} className="bg-slate-700 text-white px-4 py-2 rounded-lg hover:bg-slate-600 flex items-center text-sm font-bold border border-slate-600">
           <Database className="h-4 w-4 mr-2" /> Export Database
         </button>
       </div>
+
+      {/* General Settings */}
       <div className="bg-slate-800 rounded-xl border border-slate-700 p-8 shadow-xl">
+        <h3 className="text-xl font-bold text-white mb-6 border-b border-slate-700 pb-4">General Configuration</h3>
         <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {Object.keys(settings).filter(key => key !== 'kiwiApiKey').map((key) => (
+          {Object.keys(settings).filter(key => key !== 'kiwiApiKey' && key !== 'markupConfig').map((key) => (
              <div key={key} className="space-y-2">
                 <label className="text-xs font-bold text-slate-200 uppercase tracking-wide">
                   {key.replace(/([A-Z])/g, ' $1').trim()}
@@ -577,11 +709,50 @@ const SettingsPage = () => {
            </div>
 
           <div className="md:col-span-2 pt-4 border-t border-slate-700 mt-4">
-             <button type="submit" className="bg-gold-500 text-royal-900 px-8 py-3 rounded-lg font-bold hover:bg-gold-400 flex items-center shadow-lg hover:shadow-xl transition-all">
-               <Save className="h-5 w-5 mr-2" /> Save Settings
+             <button type="submit" className="bg-blue-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-blue-500 flex items-center shadow-lg hover:shadow-xl transition-all">
+               <Save className="h-5 w-5 mr-2" /> Save General Settings
              </button>
           </div>
         </form>
+      </div>
+
+      {/* Markup Settings */}
+      <div className="bg-slate-800 rounded-xl border border-slate-700 p-8 shadow-xl">
+         <h3 className="text-xl font-bold text-white mb-6 border-b border-slate-700 pb-4">Markup Configuration</h3>
+         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {['flight', 'hotel', 'package'].map((type) => (
+                <div key={type} className="bg-slate-900 p-4 rounded-xl border border-slate-700">
+                    <h4 className="text-gold-400 font-bold uppercase mb-4 text-sm">{type} Markup</h4>
+                    <div className="space-y-4">
+                        <div className="flex gap-2">
+                            <button 
+                                onClick={() => setMarkupConfig({...markupConfig, [type]: { ...markupConfig[type as keyof typeof markupConfig], type: 'fixed' }})}
+                                className={`flex-1 py-2 text-xs font-bold rounded ${markupConfig[type as keyof typeof markupConfig].type === 'fixed' ? 'bg-white text-slate-900' : 'bg-slate-800 text-slate-400'}`}
+                            >
+                                Fixed (₹)
+                            </button>
+                            <button 
+                                onClick={() => setMarkupConfig({...markupConfig, [type]: { ...markupConfig[type as keyof typeof markupConfig], type: 'percentage' }})}
+                                className={`flex-1 py-2 text-xs font-bold rounded ${markupConfig[type as keyof typeof markupConfig].type === 'percentage' ? 'bg-white text-slate-900' : 'bg-slate-800 text-slate-400'}`}
+                            >
+                                Percent (%)
+                            </button>
+                        </div>
+                        <input 
+                            type="number" 
+                            value={markupConfig[type as keyof typeof markupConfig].value}
+                            onChange={(e) => setMarkupConfig({...markupConfig, [type]: { ...markupConfig[type as keyof typeof markupConfig], value: Number(e.target.value) }})}
+                            className="w-full p-2 bg-slate-800 border border-slate-600 rounded text-white font-bold text-center"
+                        />
+                    </div>
+                </div>
+            ))}
+         </div>
+         <div className="mt-8">
+            <button onClick={handleSaveMarkup} className="w-full bg-gold-500 text-royal-900 px-8 py-3 rounded-lg font-bold hover:bg-gold-400 flex items-center justify-center shadow-lg hover:shadow-xl transition-all">
+               <Save className="h-5 w-5 mr-2" /> Save Markup Changes
+            </button>
+         </div>
       </div>
     </div>
   );
@@ -884,6 +1055,7 @@ export const AdminLayout = () => {
             <Routes>
                 <Route path="/" element={<DashboardHome />} />
                 <Route path="/leads" element={<LeadsPage />} />
+                <Route path="/bookings" element={<BookingsPage />} />
                 <Route path="/packages" element={<PackagesPage />} />
                 <Route path="/users" element={<UserManagementPage />} />
                 <Route path="/invoices" element={<InvoicesPage />} />

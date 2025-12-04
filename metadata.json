@@ -1,0 +1,7 @@
+{
+  "name": "Hamsika Tours & Travels",
+  "description": "A premium, AI-powered travel booking platform for flights, hotels, and custom packages.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}

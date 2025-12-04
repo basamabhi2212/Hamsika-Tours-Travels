@@ -7,7 +7,7 @@ import {
   BookOpen, Plane
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { User, Lead, Package, CompanySettings, Invoice, InvoiceItem, Booking } from '../types';
+import { User, Lead, Package, CompanySettings, Invoice, InvoiceItem, Booking, MarkupConfig } from '../types';
 import { PackageService, UserService, LeadService, SettingsService, InvoiceService, BookingService } from '../services/storage';
 
 // --- SHARED COMPONENTS ---
@@ -632,11 +632,11 @@ const SettingsPage = () => {
   const [settings, setSettings] = useState<CompanySettings>(SettingsService.get());
   
   // Default markup config if missing
-  const [markupConfig, setMarkupConfig] = useState(settings.markupConfig || {
+  const [markupConfig, setMarkupConfig] = useState<MarkupConfig>(settings.markupConfig || {
       flight: { type: 'fixed', value: 0 },
       hotel: { type: 'fixed', value: 0 },
       package: { type: 'fixed', value: 0 }
-  });
+  } as MarkupConfig);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
